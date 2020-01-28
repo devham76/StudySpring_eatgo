@@ -4,25 +4,23 @@ import kr.co.fastcampus.eatgo.application.RestaurantService;
 import kr.co.fastcampus.eatgo.domain.*;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.core.StringContains.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @RunWith(SpringRunner.class) // 누구한데 요청할거냐?->spring을 이용해서 처리
@@ -44,7 +42,12 @@ public class RestaurantControllerTest {
     @Test
     public void list() throws Exception {
         List<Restaurant> restaurants = new ArrayList<>();
-        restaurants.add(new Restaurant(1004L, "Bob zip", "Seoul"));
+        Restaurant restaurant = Restaurant.builder()
+                                .id(1004L)
+                                .name("Bob zip")
+                                .address("Seoul")
+                                .build();
+        restaurants.add(restaurant);
         given(restaurantService.getRestaurants()).willReturn(restaurants);     //임의의 레스토랑 목록을 돌려주면된다
         mvc.perform(get("/restaurants"))
         .andExpect(status().isOk())    // /restaurants로 접속했을때 정상적으로 나오니? "그리고 기대한다"의 뜻
@@ -58,13 +61,21 @@ public class RestaurantControllerTest {
     // 가게 상세 테스트
     @Test
     public void detail() throws Exception {
-        Restaurant restaurant = new Restaurant(1004L, "Bob zip", "Seoul");
-        restaurant.addMenuItem(new MenuItem("Kimchi"));
+        Restaurant restaurant = Restaurant.builder()
+                                .id(1004L)
+                                .name("Bob zip")
+                                .address("Seoul")
+                                .build();
+        restaurant.setMenuItem(Arrays.asList(new MenuItem("Kimchi")));
         // given ; 정보를 가짜로 얻어서 (MockMvc) 처리하면 willreturn되는지 확인했다
         given(restaurantService.getRestaurant(1004L)).willReturn(restaurant);     //임의의 레스토랑 목록을 돌려주면된다
+        Restaurant restaurant2 = Restaurant.builder()
+                                .id(2020L)
+                                .name("Cyber Food")
+                                .address("Seoul")
+                                .build();
 
-        Restaurant restaurant2 = new Restaurant(2020L, "Cyber Food", "Seoul");
-        restaurant2.addMenuItem(new MenuItem("Kimchi"));
+        restaurant2.setMenuItem(Arrays.asList(new MenuItem("Kimchi")));
         given(restaurantService.getRestaurant(2020L)).willReturn(restaurant2);     //임의의 레스토랑 목록을 돌려주면된다
 
         mvc.perform(get("/restaurants/1004"))
@@ -90,7 +101,16 @@ public class RestaurantControllerTest {
 
     //가게등록
     @Test
-    public void create() throws Exception {
+    public void createWithVaildData() throws Exception {
+        given(restaurantService.addRestaurant(any())).will(invocation -> {
+            Restaurant restaurant = invocation.getArgument(0);
+            return Restaurant.builder()
+                    .id(1234L)
+                    .name(restaurant.getName())
+                    .address(restaurant.getAddress())
+                    .build();
+        });
+
         mvc.perform(post("/restaurants")
                 .contentType(MediaType.APPLICATION_JSON)  //이내용이 json이라는것을 알려야한다
                 .content("{\"name\":\"hyemi\", \"address\":\"Busan\"}"))
@@ -101,5 +121,29 @@ public class RestaurantControllerTest {
         //Mockito.verify addresuaurant가 되는지 확인한다
         // any() : 어떤 객체를 넣었더라도 실행이 되는지 확인한다
         verify(restaurantService).addRestaurant(any());
+    }
+    @Test
+    public void createWithInvaildData() throws Exception {
+        mvc.perform(post("/restaurants")
+                .contentType(MediaType.APPLICATION_JSON)  //이내용이 json이라는것을 알려야한다
+                .content("{\"name\":\"\", \"address\":\"\"}"))
+                .andExpect(status().isBadRequest());
+
+    }
+    @Test
+    public void updateWithVaildData() throws Exception {
+        mvc.perform(patch("/restaurants/1234L")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Bobzip\", \"address\":\"Busan\"}"))
+                .andExpect(status().isOk());
+        // 실제로 일어나야하는일 : 수정하기
+        verify(restaurantService).updateRestaurant(1234L,"Soolzip","Seoul");
+    }
+    @Test
+    public void updateWithInvaildData() throws Exception {
+        mvc.perform(patch("/restaurants/1234L")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"\", \"address\":\"\"}"))
+                .andExpect(status().isBadRequest());
     }
 }

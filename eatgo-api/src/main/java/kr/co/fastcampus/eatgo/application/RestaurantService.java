@@ -22,18 +22,26 @@ public class RestaurantService {
         this.menuItemRepository = menuItemRepository;
     }
     public List<Restaurant> getRestaurants() {
-        List<Restaurant> restaurants = restaurantRepository.findAll();
-        return restaurants;
+        return restaurantRepository.findAll();
     }
 
     public Restaurant getRestaurant(Long id) {
-        Restaurant restaurant = restaurantRepository.findById(id);
+        // optional 이므로 orElse추가, 해당객체가 값이 없을대 null로 처리하겟다
+        Restaurant restaurant = restaurantRepository.findById(id).orElse(null);
         List<MenuItem> menuItems = menuItemRepository.findAllByRestaurantId(id);
         restaurant.setMenuItem(menuItems);
         return restaurant;
     }
 
-    public void addRestaurant(Restaurant restaurant) {
+    public Restaurant addRestaurant(Restaurant restaurant) {
+        //Restaurant saved = restaurantRepository.save(restaurant);
+        return restaurantRepository.save(restaurant);
+    }
 
+    public Restaurant updateRestaurant(Long Id, String name, String address) {
+        Restaurant restaurant = restaurantRepository.findById(Id).orElse(null);
+        //assert restaurant != null;
+        restaurant.setInformation(name, address);
+        return restaurant;
     }
 }

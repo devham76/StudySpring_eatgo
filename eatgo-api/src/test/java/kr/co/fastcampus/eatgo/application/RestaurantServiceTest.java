@@ -8,8 +8,10 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 public class RestaurantServiceTest {
@@ -31,11 +33,15 @@ public class RestaurantServiceTest {
     // 가짜로 객체를 만든다
     private void mockRestaurantRepository() {
         List<Restaurant> restaurants = new ArrayList<>();
-        Restaurant restaurant = new Restaurant(1004L, "Bob zip", "Seoul");
+        Restaurant restaurant = Restaurant.builder()
+                .id(1004L)
+                .name("Bob zip")
+                .address("Seoul")
+                .build();
         restaurants.add(restaurant);
 
         given(restaurantRepository.findAll()).willReturn(restaurants);
-        given(restaurantRepository.findById(1004L)).willReturn(restaurant);
+        given(restaurantRepository.findById(1004L)).willReturn(Optional.of(restaurant));
     }
     private void mockMenuItemRepository() {
         List<MenuItem> menuItems = new ArrayList<>();
@@ -60,4 +66,35 @@ public class RestaurantServiceTest {
         assertThat(menuItem.getName()).isEqualTo("Kimchi");
     }
 
+    @Test
+    public void addRestaurant(){
+        Restaurant restaurant = Restaurant.builder()
+                .name("BeRyong")
+                .address("Busan")
+                .build();
+        Restaurant saved = Restaurant.builder()
+                    .id(1234L)
+                    .name("BeRyong")
+                    .address("Busan")
+                    .build();
+
+        // 어떤걸 저장 해주면 restaurant를반환하는지 확인
+        given(restaurantRepository.save(any())).willReturn(saved);
+        Restaurant created = restaurantService.addRestaurant(restaurant);
+        assertThat(created.getId()).isEqualTo(1234L);
+    }
+
+    @Test
+    public void updateRestaurant(){
+        Restaurant restaurant = Restaurant.builder()
+                        .id(1234L)
+                        .name("Bobzip")
+                        .address("Seoul")
+                        .build();
+        given(restaurantRepository.findById(1234L)).willReturn(Optional.of(restaurant));
+
+        restaurantService.updateRestaurant(1234L,"Soolzip","Busan");
+        assertThat(restaurant.getName()).isEqualTo("Soolzip");
+        assertThat(restaurant.getAddress()).isEqualTo("Busan");
+    }
 }
